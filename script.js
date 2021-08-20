@@ -11,28 +11,63 @@ const inputDuration = document.querySelector('.form__input--duration');
 const inputCadence = document.querySelector('.form__input--cadence');
 const inputElevation = document.querySelector('.form__input--elevation');
 
-function success(position) {
-  console.log(position);
-  const { latitude, longitude } = position.coords;
-  console.log(latitude, longitude);
-  console.log(`https://www.google.lk/maps/@${latitude},${longitude}`);
+class App {
+  #map;
+  #mapEvent;
+  constructor() {
+    this._getposition();
+    form.addEventListener('submit', this._newWorkout.bind(this));
 
-  const map = L.map('map').setView([latitude, longitude], 13);
+    inputType.addEventListener('change', this._toggleElevationField);
+  }
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  }).addTo(map);
+  _getposition() {
+    function error() {
+      alert('sorry,no position available');
+    }
+    if (navigator.geolocation)
+      navigator.geolocation.getCurrentPosition(this._loadMap.bind(this), error);
+  }
+  _loadMap(position) {
+    const { latitude, longitude } = position.coords;
+    console.log(`https://www.google.lk/maps/@${latitude},${longitude}`);
 
-  L.marker([latitude, longitude])
-    .addTo(map)
-    .bindPopup('A pretty CSS3 popup.<br> Easily customizable.')
-    .openPopup();
-  map.on('click', function (mapEvent) {
-    console.log(mapEvent);
-    const { lat, lng } = mapEvent.latlng;
+    this.#map = L.map('map').setView([latitude, longitude], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(this.#map);
+
+    L.marker([latitude, longitude])
+      .addTo(this.#map)
+      .bindPopup('A pretty CSS3 popup.<br> Easily customizable.')
+      .openPopup();
+    this.#map.on('click', this._showForm.bind(this));
+  }
+
+  _showForm(mapE) {
+    this.#mapEvent = mapE;
+    form.classList.remove('hidden');
+    inputDistance.focus();
+  }
+  _toggleElevationField() {
+    inputElevation.closest('.form__row').classList.toggle('form__row--hidden');
+    inputCadence.closest('.form__row').classList.toggle('form__row--hidden');
+  }
+  _newWorkout(e) {
+    e.preventDefault();
+    // console.log(this.#mapEvent);
+    //clear input fields
+    inputDistance.value =
+      inputDuration.value =
+      inputElevation.value =
+      inputCadence.value =
+        '';
+    //display marker
+    const { lat, lng } = this.#mapEvent.latlng;
     L.marker([lat, lng], { opacity: 1, draggable: true })
-      .addTo(map)
+      .addTo(this.#map)
       .bindPopup(
         L.popup({
           maxWidth: 250,
@@ -44,10 +79,6 @@ function success(position) {
       )
       .setPopupContent('workout')
       .openPopup();
-  });
+  }
 }
-function error() {
-  alert('sorry,no position available');
-}
-if (navigator.geolocation)
-  navigator.geolocation.getCurrentPosition(success, error);
+const app = new App();
