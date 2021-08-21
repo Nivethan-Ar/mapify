@@ -17,7 +17,7 @@ class Workout {
     this.distance = distance;
   }
   _setDescription() {
-    // prettier-ignore
+    //prettier-ignore;
     const months = [
       'January',
       'February',
@@ -71,13 +71,21 @@ class Cycling extends Workout {
 
 class App {
   #map;
+  #mapZoomLevel = 13;
   #mapEvent;
   #workouts = [];
   constructor() {
+    // Get user's position
     this._getposition();
+
+    // Get data from local storage
+    this._getLocalStorage();
+
+    // Attach event handlers
     form.addEventListener('submit', this._newWorkout.bind(this));
 
     inputType.addEventListener('change', this._toggleElevationField);
+    containerWorkouts.addEventListener('click', this._moveToPopup.bind(this));
   }
 
   _getposition() {
@@ -92,7 +100,7 @@ class App {
     const { longitude } = position.coords;
     //console.log(`https://www.google.lk/maps/@${latitude},${longitude}`);
     const coords = [latitude, longitude];
-    this.#map = L.map('map').setView(coords, 13);
+    this.#map = L.map('map').setView(coords, this.#mapZoomLevel);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution:
@@ -100,6 +108,9 @@ class App {
     }).addTo(this.#map);
 
     this.#map.on('click', this._showForm.bind(this));
+    this.#workouts.forEach(work => {
+      this._renderWorkoutMarker(work);
+    });
   }
   _hideForm() {
     //empty inputs
@@ -165,6 +176,9 @@ class App {
 
     // Hide form + clear input fields
     this._hideForm();
+
+    // Set Local storage to all workouts
+    this._setLocalStorage();
   }
   //display marker
   _renderWorkoutMarker(workout) {
@@ -229,7 +243,33 @@ class App {
         </li>
       `;
     form.insertAdjacentHTML('afterend', html);
-    console.log(workout.pace, workout.cadence);
+  }
+
+  _moveToPopup(e) {
+    const workoutEl = e.target.closest('.workout');
+    console.log(workoutEl);
+    if (!workoutEl) return;
+    const workout = this.#workouts.find(
+      work => work.id === workoutEl.dataset.id
+    );
+    this.#map.setView(workout.coords, this.#mapZoomLevel, {
+      animate: true,
+      pan: { duration: 1 },
+    });
+  }
+  _setLocalStorage() {
+    localStorage.setItem('workouts', JSON.stringify(this.#workouts));
+  }
+  _getLocalStorage() {
+    const data = JSON.parse(localStorage.getItem('workouts'));
+    console.log(data);
+
+    if (!data) return;
+
+    this.#workouts = data;
+    // this.#workouts.forEach(work => {
+    //   this._renderWorkout(work);
+    // });
   }
 }
 const app = new App();
